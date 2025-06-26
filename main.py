@@ -1,4 +1,3 @@
-Here is the streamlit app file:
 import sys
 from pathlib import Path
 import streamlit as st
@@ -824,5 +823,3 @@ with t4:
 # — Raw data preview —
 st.subheader("Production Data & Predictions")
 st.dataframe(df_fe, use_container_width=False)
-
-next is the feature engineering file
