@@ -254,6 +254,11 @@ def make_plan_features(r):
     failure_for_row = str(failure_for_row).strip().upper()
 
     # 4) Build the feature dict, **including** plan_start_date (and optionally plan_end_date)
+    # Compute defect rate from historical slice
+    total_defects = hist[orig_defs].sum().sum()
+    total_qty     = hist.get("qty_produced", pd.Series(dtype=float)).sum()
+    defect_rate   = total_defects / total_qty if total_qty > 0 else 0.0
+
     feat = {
         "part_number":       pn,
         "line":              ln,
@@ -262,9 +267,9 @@ def make_plan_features(r):
         "plan_end_date":     r["plan_end_date"],
         "build_time_days":   r["build_time_days"],
         "build_time_4w_avg": bt_4w,
-        "defect_rate":       hist[orig_defs].sum(axis=1).sum() / max(1, len(hist)),
+        "defect_rate":       defect_rate,
         "downtime_min":      dt_sum,
-        "failure_mode":      segment.failure_mode.mode().iloc[0] if not segment.empty else "NONE",
+        "failure_mode":      failure_for_row,
         "failure_modes":     mode_list,   # <— plural, comma-joined
         **defect_4w_vals
     }
