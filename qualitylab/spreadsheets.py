@@ -67,7 +67,7 @@ def read_downtime_data(paths: list[Path]) -> pd.DataFrame:
         )
     else:
         df["failure_mode"] = "NONE"
-    for col in ("downtime_min", "opportunity_cost"):
+    for col in ("downtime_min",):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
     return df
