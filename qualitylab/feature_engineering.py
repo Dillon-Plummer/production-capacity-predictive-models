@@ -59,15 +59,14 @@ def add_recent_history(df: pd.DataFrame, window_days: int = 28) -> pd.DataFrame:
 
 def merge_downtime_features(df: pd.DataFrame, df_down: pd.DataFrame) -> pd.DataFrame:
     """
-    For each build row in df, sum downtime_min and opportunity_cost
-    from df_down where line matches and date falls within the build window.
-    Also collect the failure modes seen in that window.
+    For each build row in ``df``, sum ``downtime_min`` from ``df_down`` where
+    the line matches and the date falls within the build window.  Also collect
+    the failure modes seen in that window.
     """
     df = df.copy()
-    df['downtime_min']    = 0.0
-    df['opportunity_cost'] = 0.0
-    df['failure_modes']   = [[] for _ in range(len(df))]
-    df['failure_mode']    = 'NONE'
+    df['downtime_min']  = 0.0
+    df['failure_modes'] = [[] for _ in range(len(df))]
+    df['failure_mode']  = 'NONE'
     
     # group downtime by line for efficiency
     down_by_line = {ln: sub for ln, sub in df_down.groupby('line')}
@@ -84,8 +83,7 @@ def merge_downtime_features(df: pd.DataFrame, df_down: pd.DataFrame) -> pd.DataF
         hits = sub.loc[mask]
 
         # 1) sums
-        df.at[row.Index, 'downtime_min']     = hits['downtime_min'].sum()
-        df.at[row.Index, 'opportunity_cost'] = hits['opportunity_cost'].sum()
+        df.at[row.Index, 'downtime_min'] = hits['downtime_min'].sum()
         
         # 2) collect all unique failure modes
         modes = hits['failure_mode'].dropna().unique().tolist()
