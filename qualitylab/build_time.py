@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 import joblib
 
@@ -8,7 +7,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-from feature_engineering import add_recent_history
+from .feature_engineering import add_recent_history
+from .paths import get_model_dir
 
 def train_build_time_model(df: pd.DataFrame) -> Pipeline:
     """
@@ -66,8 +66,7 @@ def train_build_time_model(df: pd.DataFrame) -> Pipeline:
     print(f"Build-time model R² on hold-out: {score:.3f}")
 
     # 7) Persist the model
-    out_dir = Path("models")
-    out_dir.mkdir(exist_ok=True)
+    out_dir = get_model_dir()
     timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M")
     fname = out_dir / f"build_time_model_{timestamp}.pkl"
     joblib.dump(pipe, fname)

@@ -8,8 +8,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import joblib
 from lime.lime_tabular import LimeTabularExplainer
-from feature_engineering import add_recent_history, merge_downtime_features
+from .feature_engineering import add_recent_history, merge_downtime_features
 from upsetplot import from_indicators, UpSet
+from .paths import PROJECT_ROOT, get_model_dir, get_output_dir
 import io
 import zipfile
 
@@ -26,11 +27,11 @@ if "rolling_window" not in st.session_state:
     st.session_state.rolling_window = 28
 
 # Ensure project root on path
-project_root = Path(__file__).resolve().parent
+project_root = PROJECT_ROOT
 sys.path.insert(0, str(project_root))
 
 def get_latest_model(pattern: str) -> Path:
-    files = list((project_root / "models").glob(pattern))
+    files = list(get_model_dir().glob(pattern))
     if not files:
         st.error(f"No models found for pattern `{pattern}`")
         st.stop()
@@ -85,6 +86,10 @@ if st.session_state.exports:
         for fname, data in st.session_state.exports.items():
             zf.writestr(fname, data)
     zip_buf.seek(0)
+    # Save exports to the outputs directory as well
+    output_dir = get_output_dir()
+    with open(output_dir / "all_exports.zip", "wb") as f:
+        f.write(zip_buf.getvalue())
     st.sidebar.download_button(
         "Download All Exports", zip_buf.getvalue(), "all_exports.zip", mime="application/zip"
     )

@@ -1,21 +1,15 @@
 import click
 from pathlib import Path
 import pandas as pd
-import joblib
-from spreadsheets import read_production_data, read_downtime_data
-from feature_engineering import add_recent_history
-from build_time import train_build_time_model
-from build_quantity import train_build_quantity_model
-from defects import train_defect_model
 
-# Paths relative to this package
-PACKAGE_ROOT = Path(__file__).resolve().parent
+from .spreadsheets import read_production_data, read_downtime_data
+from .feature_engineering import add_recent_history
+from .build_time import train_build_time_model
+from .build_quantity import train_build_quantity_model
+from .defects import train_defect_model
+from .paths import get_data_dir
 
-def get_data_dir() -> Path:
-    project_root = PACKAGE_ROOT.parent
-    data_dir = project_root / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    return data_dir
+
 
 @click.group()
 def cli():
