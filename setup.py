@@ -12,7 +12,9 @@ setup(
         "matplotlib",
         "joblib",
         "openpyxl",
-        "xlrd"
+        "xlrd",
+        "lime",
+        "upsetplot"
     ],
     entry_points={
         "console_scripts": [
