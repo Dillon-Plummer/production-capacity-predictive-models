@@ -1,9 +1,11 @@
 # Predicting manufacturing capacity
 This is a Streamlit app and group of 3 machine learning models to predict production capacity in a regulated manufacturing setting (medical devices).  The models are fully transparent for ISO and FDA audits, based on supervised Random Forest classifiers with gradient boosters.  The model explainability ensures compliance with the ISO 13485 and ISO 14971 standards.
 
-The `cli.py` file exposes a small command line interface used for ingesting data
-and training the models.  The latest models are stored in the `models/`
-directory and are automatically loaded by the Streamlit dashboard.
+The project is organised as a Python package named `qualitylab`.  It exposes a
+command line interface for ingesting data and training the models.  Trained
+models are stored under the `models/` directory and are automatically loaded by
+the Streamlit dashboard. Input data is placed under `data/` and any dashboard
+exports are written to `outputs/`.
 
 ## Setup
 

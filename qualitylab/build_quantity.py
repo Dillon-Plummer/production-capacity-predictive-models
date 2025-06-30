@@ -1,4 +1,3 @@
-from pathlib import Path
 import pandas as pd
 import joblib
 
@@ -8,7 +7,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-from feature_engineering import merge_downtime_features
+from .feature_engineering import merge_downtime_features
+from .paths import get_model_dir
 
 def train_build_quantity_model(
     df_prod: pd.DataFrame,
@@ -72,8 +72,7 @@ def train_build_quantity_model(
     score = pipe.score(X_test, y_test)
     print(f"Build Quantity R² on hold-out: {score:.3f}")
 
-    out_dir = Path("models")
-    out_dir.mkdir(exist_ok=True)
+    out_dir = get_model_dir()
     fname = out_dir / f"build_quantity_model_{pd.Timestamp.now():%Y%m%d_%H%M}.pkl"
     joblib.dump(pipe, fname)
     print(f"Saved model to {fname}")

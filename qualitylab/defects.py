@@ -1,6 +1,5 @@
 import pandas as pd
 import joblib
-from pathlib import Path
 
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
@@ -9,7 +8,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.model_selection import train_test_split
 
-from feature_engineering import add_recent_history
+from .feature_engineering import add_recent_history
+from .paths import get_model_dir
 
 def train_defect_model(df: pd.DataFrame) -> Pipeline:
     """
@@ -70,8 +70,7 @@ def train_defect_model(df: pd.DataFrame) -> Pipeline:
 
     # 7) Persist the model artifact
     timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M")
-    out_path  = Path("models") / f"defect_model_{timestamp}.pkl"
-    out_path.parent.mkdir(exist_ok=True)
+    out_path  = get_model_dir() / f"defect_model_{timestamp}.pkl"
     joblib.dump(pipe, out_path)
     print(f"Saved defect model to {out_path}")
 
