@@ -232,12 +232,6 @@ def make_plan_features(r):
     bt_4w = hist["build_time_days"].mean() if not hist.empty else 0.0
 
     # 2) Downtime and opportunity cost during this build plan
-    down_mask = (
-        (df_down["line"] == ln)
-        & (df_down["date"] >= st_dt)
-        & (df_down["date"] <= r["plan_end_date"])
-    )
-
     segment = df_down[
         (df_down.line == ln) &
         (df_down.date.between(st_dt, r.plan_end_date))

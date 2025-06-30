@@ -35,7 +35,8 @@ def train_build_quantity_model(
     if not defect_cols:
         raise ValueError("No defect columns found in DataFrame!")
     df["total_defects"] = df[defect_cols].sum(axis=1)
-    df["defect_rate"]    = df["total_defects"] / df["qty_produced"]
+    qty = df["qty_produced"].replace(0, pd.NA)
+    df["defect_rate"] = (df["total_defects"] / qty).fillna(0.0)
 
     # 3) Select features & target (added "line" and "failure_mode")
     features = [
