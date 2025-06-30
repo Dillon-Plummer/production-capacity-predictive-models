@@ -33,7 +33,15 @@ directory and are automatically loaded by the Streamlit dashboard.
    The command concatenates the provided files and writes a
    `data/production.parquet` file inside the project directory.
 
-2. **Train the build-time model**
+2. **Ingest the downtime logs**
+
+   ```bash
+   qualitylab ingest-downtime path/to/downtime_log1.xlsx path/to/downtime_log2.csv
+   ```
+
+   This writes a `data/downtime.parquet` file used for build quantity training.
+
+3. **Train the build-time model**
 
    ```bash
    qualitylab train-build-time
@@ -41,20 +49,22 @@ directory and are automatically loaded by the Streamlit dashboard.
 
    A timestamped model is saved under `models/`.
 
-3. **Train the defect-count model**
+4. **Train the defect-count model**
 
    ```bash
    qualitylab train-defects
    ```
 
-4. **Train the build-quantity model**
-
+5. **Train the build-quantity model**
    ```bash
-   qualitylab train-build-quantity path/to/prod1.xlsx path/to/prod2.csv \
-       --downtime-files downtime_log1.xlsx --downtime-files downtime_log2.csv
+   qualitylab train-build-quantity
    ```
 
-   Both production and downtime files are required for this step.
+6. **Train all models at once**
+
+   ```bash
+   qualitylab train-all
+   ```
 
 After running these commands the `models/` directory will contain the latest
 training artefacts.

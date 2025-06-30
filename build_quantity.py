@@ -9,11 +9,10 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 from feature_engineering import merge_downtime_features
-from spreadsheets import read_downtime_data
 
 def train_build_quantity_model(
     df_prod: pd.DataFrame,
-    downtime_paths: list[Path]
+    df_down: pd.DataFrame,
 ) -> Pipeline:
     """
     Train a model to predict feasible production quantity per build,
@@ -21,10 +20,9 @@ def train_build_quantity_model(
     plus categorical columns: part_number, line, and failure_mode.
 
     df_prod: production DataFrame AFTER add_recent_history(df_prod).
-    downtime_paths: list of Excel/CSV files with downtime logs.
+    df_down: pre-loaded downtime DataFrame.
     """
     # 1) Merge in downtime features
-    df_down = read_downtime_data(downtime_paths)
     df = merge_downtime_features(df_prod, df_down)
 
     # 2) Compute defect_rate from *all* qty_of_defect_* columns
