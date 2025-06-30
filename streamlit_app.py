@@ -188,8 +188,18 @@ if "plan_end_date" in df_plan.columns:
 else:
     df_plan["plan_end_date"] = df_plan["plan_start_date"]
 auto_bt = (df_plan["plan_end_date"] - df_plan["plan_start_date"]).dt.total_seconds() / 86400
-df_plan["build_time_days"] = df_plan.get("build_time_days", auto_bt)
-df_plan = df_plan.dropna(subset=["part_number", "planned_qty", "plan_start_date", "build_time_days"])
+if "build_time_days" in df_plan.columns:
+    df_plan["build_time_days"] = df_plan["build_time_days"].fillna(auto_bt)
+else:
+    df_plan["build_time_days"] = auto_bt
+
+df_plan = df_plan.dropna(subset=[
+    "part_number",
+    "planned_qty",
+    "plan_start_date",
+    "plan_end_date",
+    "build_time_days",
+])
 if "line" not in df_plan.columns:
     st.error("Missing 'line' in build plan")
     st.stop()
