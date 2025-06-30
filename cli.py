@@ -33,16 +33,14 @@ def ingest(files):
 def train_build_time():
     data_path = get_data_dir() / "production.parquet"
     df = pd.read_parquet(data_path)
-    df_fe = add_recent_history(df)
-    train_build_time_model(df_fe)
+    train_build_time_model(df)
     click.echo("✅ Build-time model trained")
 
 @cli.command("train-defects")
 def train_defects():
     data_path = get_data_dir() / "production.parquet"
     df = pd.read_parquet(data_path)
-    df_fe = add_recent_history(df)
-    train_defect_model(df_fe)
+    train_defect_model(df)
     click.echo("✅ Defect model trained")
 
 @cli.command('train-build-quantity')
