@@ -2,11 +2,11 @@ import click
 from pathlib import Path
 import pandas as pd
 import joblib
-from qualitylab.io.spreadsheets import read_production_data
-from qualitylab.ml.feature_engineering import add_recent_history
-from qualitylab.ml.build_time import train_build_time_model
-from qualitylab.ml.build_quantity import train_build_quantity_model
-from qualitylab.ml.defects import train_defect_model
+from spreadsheets import read_production_data
+from feature_engineering import add_recent_history
+from build_time import train_build_time_model
+from build_quantity import train_build_quantity_model
+from defects import train_defect_model
 
 # Paths relative to this package
 PACKAGE_ROOT = Path(__file__).resolve().parent
