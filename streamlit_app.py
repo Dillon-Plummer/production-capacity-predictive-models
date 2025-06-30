@@ -3,6 +3,7 @@ from pathlib import Path
 import streamlit as st
 import pandas as pd
 import numpy as np
+import re
 import seaborn as sns
 import matplotlib.pyplot as plt
 import joblib
@@ -627,9 +628,15 @@ with t2:
                     # unwrap categorical encoding
                     if " = " in feat_name:
                         code, cat = feat_name.split(" = ")
-                        raw_col = code.replace("_code","")
+                        raw_col = code.replace("_code", "")
                     else:
                         raw_col, cat = feat_name, None
+
+                    # strip any inequality thresholds from LIME
+                    for op in ["<=", ">=", "<", ">"]:
+                        if op in raw_col:
+                            raw_col = raw_col.split(op)[0].strip()
+                            break
 
                     # for downtime, pull the actual modes you stored
                     if raw_col == "downtime_min":
@@ -638,7 +645,13 @@ with t2:
                     elif cat is not None:
                         reason = f"{pretty_feat(raw_col)} = {cat}"
                     else:
-                        reason = pretty_feat(raw_col)
+                        val = r.get(raw_col)
+                        if isinstance(val, float):
+                            reason = f"{pretty_feat(raw_col)} = {val:.2f}"
+                        elif val is not None:
+                            reason = f"{pretty_feat(raw_col)} = {val}"
+                        else:
+                            reason = pretty_feat(raw_col)
 
 
                     rows.append({
