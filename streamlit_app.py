@@ -10,12 +10,20 @@ import joblib
 from lime.lime_tabular import LimeTabularExplainer
 from feature_engineering import add_recent_history, merge_downtime_features
 from upsetplot import from_indicators, UpSet
+import io
+import zipfile
 
 
 
 # Page config & figure sizing
 st.set_page_config(layout="centered")
 sns.set(rc={"figure.figsize": (16, 9)})
+
+# Session-state defaults
+if "exports" not in st.session_state:
+    st.session_state.exports = {}
+if "rolling_window" not in st.session_state:
+    st.session_state.rolling_window = 28
 
 # Ensure project root on path
 project_root = Path(__file__).resolve().parent
@@ -58,6 +66,28 @@ with st.sidebar.form("upload_form"):
 if not st.session_state.uploaded:
     st.sidebar.info("Upload all three files and click Submit.")
     st.stop()
+
+# Rolling window slider
+st.sidebar.write("---")
+st.session_state.rolling_window = st.sidebar.slider(
+    "Rolling window (days)",
+    min_value=7,
+    max_value=90,
+    value=st.session_state.rolling_window,
+    step=1,
+)
+rolling_window = st.session_state.rolling_window
+
+# Master export button
+if st.session_state.exports:
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w") as zf:
+        for fname, data in st.session_state.exports.items():
+            zf.writestr(fname, data)
+    zip_buf.seek(0)
+    st.sidebar.download_button(
+        "Download All Exports", zip_buf.getvalue(), "all_exports.zip", mime="application/zip"
+    )
 
 # — Ingest & clean production data —
 raw_prod = []
@@ -103,7 +133,7 @@ for c in orig_defs:
     df_prod[c] = pd.to_numeric(df_prod[c], errors="coerce").fillna(0)
 
 # — Feature engineering on prod history —
-df_fe = add_recent_history(df_prod)
+df_fe = add_recent_history(df_prod, window_days=rolling_window)
 
 # — Ingest & clean downtime data —
 raw_down = []
@@ -218,10 +248,10 @@ def make_plan_features(r):
     st_dt = r["plan_start_date"]
     ln    = r["line"]
 
-    # 1) Historical slice for this part in last 28 days
+    # 1) Historical slice for this part in the chosen rolling window
     hist = df_prod[
         (df_prod["part_number"] == pn)
-        & (df_prod["build_start_date"] >= st_dt - pd.Timedelta(days=28))
+        & (df_prod["build_start_date"] >= st_dt - pd.Timedelta(days=rolling_window))
         & (df_prod["build_start_date"] < st_dt)
     ]
 
@@ -559,6 +589,11 @@ with t1:
     )
     ax.set(xlabel="Actual Build Time (days)", ylabel="Predicted Build Time (days)")
     st.pyplot(fig, use_container_width=False)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    st.download_button("Download Scatterplot", buf.getvalue(), "model_performance.png", mime="image/png")
+    st.session_state.exports["model_performance.png"] = buf.getvalue()
     for col in orig_defs:
         actual = col
         pred   = f"pred_{col}"
@@ -571,6 +606,12 @@ with t1:
         sns.lineplot(data=dfm, x="build_start_date", y="count", hue="type", ax=ax)
         ax.set_ylabel(col.replace("qty_of_defect_", "Defect ").title())
         st.pyplot(fig, use_container_width=False)
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png")
+        buf.seek(0)
+        fname = f"defect_{col}_performance.png"
+        st.download_button(f"Download {col} chart", buf.getvalue(), fname, mime="image/png")
+        st.session_state.exports[fname] = buf.getvalue()
 
 
 # ─── Tab 2: Capacity Predictions ─────────
@@ -580,6 +621,25 @@ with t2:
     if df_plan_feats.empty:
         st.info("No plan data available for your chosen part(s).")
     else:
+        exp_cols = [
+            "part_number",
+            "line",
+            "planned_qty",
+            "pred_qty",
+            "build_time_days",
+            "pred_build_time",
+            "plan_start_date",
+            "plan_end_date",
+        ]
+        export_df = df_plan_feats[exp_cols]
+        excel_buf = io.BytesIO()
+        export_df.to_excel(excel_buf, index=False)
+        excel_buf.seek(0)
+        st.download_button(
+            "Download Predictions", excel_buf.getvalue(), "capacity_predictions.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        st.session_state.exports["capacity_predictions.xlsx"] = excel_buf.getvalue()
+
         # loop over each plan‐row
         for _, r in df_plan_feats.iterrows():
             pn          = r["part_number"]
@@ -775,6 +835,11 @@ with t3:
     ax.set_xticklabels(labels, rotation=45, ha="right")
     ax.set_yticklabels(labels, rotation=0)
     st.pyplot(fig, use_container_width=True)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    st.download_button("Download Heatmap", buf.getvalue(), "cooccurrence_heatmap.png", mime="image/png")
+    st.session_state.exports["cooccurrence_heatmap.png"] = buf.getvalue()
 
 # ─── Tab 4: Co-occurrence Visualizations ─────────────────────────────────────
 with t4:
