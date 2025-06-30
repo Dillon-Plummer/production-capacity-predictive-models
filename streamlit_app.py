@@ -7,7 +7,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import joblib
 from lime.lime_tabular import LimeTabularExplainer
-from qualitylab.ml.feature_engineering import add_recent_history, merge_downtime_features
+from feature_engineering import add_recent_history, merge_downtime_features
 from upsetplot import from_indicators, UpSet
 
 
@@ -17,7 +17,7 @@ st.set_page_config(layout="centered")
 sns.set(rc={"figure.figsize": (16, 9)})
 
 # Ensure project root on path
-project_root = Path(__file__).parents[2]
+project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 def get_latest_model(pattern: str) -> Path:
