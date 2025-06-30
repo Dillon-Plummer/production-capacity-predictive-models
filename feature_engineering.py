@@ -72,30 +72,30 @@ def merge_downtime_features(df: pd.DataFrame, df_down: pd.DataFrame) -> pd.DataF
     # group downtime by line for efficiency
     down_by_line = {ln: sub for ln, sub in df_down.groupby('line')}
     
-    for idx, row in df.iterrows():
-        ln = row['line']
+    for row in df.itertuples(index=True):
+        ln = row.line
         if ln not in down_by_line:
             continue
         sub = down_by_line[ln]
         mask = (
-            (sub['date'] >= row['build_start_date']) &
-            (sub['date'] <= row['build_complete_date'])
+            (sub['date'] >= row.build_start_date) &
+            (sub['date'] <= row.build_complete_date)
         )
         hits = sub.loc[mask]
-        
+
         # 1) sums
-        df.at[idx, 'downtime_min']     = hits['downtime_min'].sum()
-        df.at[idx, 'opportunity_cost'] = hits['opportunity_cost'].sum()
+        df.at[row.Index, 'downtime_min']     = hits['downtime_min'].sum()
+        df.at[row.Index, 'opportunity_cost'] = hits['opportunity_cost'].sum()
         
         # 2) collect all unique failure modes
         modes = hits['failure_mode'].dropna().unique().tolist()
-        df.at[idx, 'failure_modes'] = modes
+        df.at[row.Index, 'failure_modes'] = modes
         
         # 3) pick a single mode (mode of the list, or NONE)
         if modes:
             # you could take the most frequent instead of first
-            df.at[idx, 'failure_mode'] = modes[0]
+            df.at[row.Index, 'failure_mode'] = modes[0]
         else:
-            df.at[idx, 'failure_mode'] = 'NONE'
+            df.at[row.Index, 'failure_mode'] = 'NONE'
     
     return df

@@ -2,10 +2,18 @@ import pandas as pd
 from pathlib import Path
 
 def _read_file(path: Path) -> pd.DataFrame:
-    if str(path).lower().endswith((".xlsx", ".xls")):
+    """Read a single CSV or Excel file.
+
+    ``.xls`` files require ``xlrd`` while ``.xlsx`` files are handled by
+    ``openpyxl``.  Previously ``openpyxl`` was attempted for both which fails
+    for ``.xls`` inputs.
+    """
+    lower = str(path).lower()
+    if lower.endswith(".xlsx"):
         return pd.read_excel(path, engine="openpyxl")
-    else:
-        return pd.read_csv(path)
+    if lower.endswith(".xls"):
+        return pd.read_excel(path, engine="xlrd")
+    return pd.read_csv(path)
 
 def read_production_data(paths: list[Path]) -> pd.DataFrame:
     """Read and concatenate production sheets from given paths."""
