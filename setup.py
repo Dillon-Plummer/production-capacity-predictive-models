@@ -7,7 +7,7 @@ setup(
     install_requires=[
         "pandas",
         "numpy",
-        "scikit-learn",
+        "scikit-learn==1.6.1",
         "streamlit",
         "seaborn",
         "matplotlib",
