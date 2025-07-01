@@ -479,7 +479,8 @@ qty_explainer = LimeTabularExplainer(
     feature_names=lime_tq_feats,
     categorical_features=cat_indices_tq,
     categorical_names=categorical_names_tq,
-    mode="regression"
+    mode="regression",
+    discretize_continuous=False,
 )
 
 time_explainer = LimeTabularExplainer(
@@ -487,7 +488,8 @@ time_explainer = LimeTabularExplainer(
     feature_names=lime_bt_feats,
     categorical_features=cat_indices_bt,
     categorical_names=categorical_names_bt,
-    mode="regression"
+    mode="regression",
+    discretize_continuous=False,
 )
 
 # ─── Define feature_name_map & pretty_feat ────────────────────────────────────
@@ -685,7 +687,10 @@ with t2:
                     for feat, w in exp_qty.as_list()
                     if w < 0
                     and not feat.startswith("part_number_code")
-                    and not (feat.startswith("failure_mode_code") and " = NONE" in feat)
+                    and not (
+                        feat.startswith("failure_mode_code")
+                        and "NONE" in feat.upper()
+                    )
                 ]
                 total = sum(w for _, w in neg) or 1e-9
 
