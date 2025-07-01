@@ -266,7 +266,7 @@ def make_plan_features(r):
     # Compute 4-week average build time
     bt_4w = hist["build_time_days"].mean() if not hist.empty else 0.0
 
-    # 2) Downtime and opportunity cost during this build plan
+    # 2) Downtime during this build plan
     segment = df_down[
         (df_down.line == ln) &
         (df_down.date.between(st_dt, r.plan_end_date))

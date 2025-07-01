@@ -16,7 +16,7 @@ def train_build_quantity_model(
 ) -> Pipeline:
     """
     Train a model to predict feasible production quantity per build,
-    given historical build-time features, defect rate, downtime/opportunity cost,
+    given historical build-time features, defect rate and downtime,
     plus categorical columns: part_number, line, and failure_mode.
 
     df_prod: production DataFrame AFTER add_recent_history(df_prod).
