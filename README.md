@@ -20,6 +20,8 @@ exports are written to `outputs/`.
    additional libraries for model explainability and visualisations.  All
    dependencies are listed in `requirements.txt` so services like
    Streamlit Cloud can install them automatically.
+   The pre-trained models were generated with `scikit-learn==1.6.1`, so
+   ensure that this version is installed to avoid compatibility issues.
 
 2. **Prepare your data**
 
