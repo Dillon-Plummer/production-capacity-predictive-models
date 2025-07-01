@@ -1,5 +1,7 @@
 # Predicting manufacturing capacity
-This is a Streamlit app and group of 3 machine learning models to predict production capacity in a regulated manufacturing setting (medical devices).  The models are fully transparent for ISO and FDA audits, based on supervised Random Forest classifiers with gradient boosters.  The model explainability ensures compliance with the ISO 13485 and ISO 14971 standards.
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gelman-manufacturing-predictions.streamlit.app/)
+
+This is a Streamlit app and group of 3 machine learning models to predict production capacity in a regulated manufacturing setting (medical devices).  The models are fully transparent for ISO and FDA audits, based on supervised Random Forest predictors.  The model explainability ensures compliance with the ISO 13485 and ISO 14971 standards.
 
 The project is organised as a Python package named `qualitylab`.  It exposes a
 command line interface for ingesting data and training the models.  Trained
@@ -26,7 +28,7 @@ exports are written to `outputs/`.
 2. **Prepare your data**
 
    Gather your historical production spreadsheets (`.xlsx`, `.xls` or `.csv`)
-   and optional downtime logs.  The file readers normalise column names and
+   and optional downtime logs.  The file readers normalize column names and
    support both Excel and CSV formats.
 
 ## Training the models
@@ -34,7 +36,7 @@ exports are written to `outputs/`.
 1. **Ingest the production data**
 
    ```bash
-   qualitylab ingest path/to/production_sheet1.xlsx path/to/production_sheet2.csv
+   qualitylab ingest path/to/production_sheet1.xlsx
    ```
 
    The command concatenates the provided files and writes a
@@ -43,7 +45,7 @@ exports are written to `outputs/`.
 2. **Ingest the downtime logs**
 
    ```bash
-   qualitylab ingest-downtime path/to/downtime_log1.xlsx path/to/downtime_log2.csv
+   qualitylab ingest-downtime path/to/downtime_log1.xlsx
    ```
 
    This writes a `data/downtime.parquet` file used for build quantity training.
