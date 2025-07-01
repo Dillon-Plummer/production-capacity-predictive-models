@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "pandas",
+        "numpy",
         "scikit-learn",
         "streamlit",
         "seaborn",
@@ -14,7 +15,8 @@ setup(
         "openpyxl",
         "xlrd",
         "lime",
-        "upsetplot"
+        "upsetplot",
+        "click",
     ],
     entry_points={
         "console_scripts": [
