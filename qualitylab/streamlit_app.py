@@ -25,6 +25,12 @@ if "exports" not in st.session_state:
     st.session_state.exports = {}
 if "rolling_window" not in st.session_state:
     st.session_state.rolling_window = 28
+if "prod_files" not in st.session_state:
+    st.session_state.prod_files = []
+if "down_files" not in st.session_state:
+    st.session_state.down_files = []
+if "plan_file" not in st.session_state:
+    st.session_state.plan_file = None
 
 # Ensure project root on path
 project_root = PROJECT_ROOT
