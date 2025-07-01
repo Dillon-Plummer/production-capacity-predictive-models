@@ -39,45 +39,49 @@ def get_latest_model(pattern: str) -> Path:
 
 st.title("QualityLab ML Dashboard (Seaborn)")
 
+# Helper to trigger a rerun with demo data loaded
+def _flag_use_demo():
+    st.session_state.use_demo = True
+    st.experimental_rerun()
+
+# Load demo data before widgets are instantiated if flagged
+if st.session_state.get("use_demo"):
+    demo_dir = PROJECT_ROOT / "data" / "demo"
+    st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
+    st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
+    st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
+    st.session_state.uploaded = True
+    st.session_state.use_demo = False
+
 # — Sidebar upload form w/ session state —
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = False
 
 with st.sidebar.form("upload_form"):
     st.header("Upload Data")
-    prod_files = st.file_uploader(
+    st.file_uploader(
         "Production sheets", type=["xlsx", "xls", "csv"],
         accept_multiple_files=True, key="prod"
     )
-    down_files = st.file_uploader(
+    st.file_uploader(
         "Downtime sheets", type=["xlsx", "xls", "csv"],
         accept_multiple_files=True, key="down"
     )
-    plan_file = st.file_uploader(
+    st.file_uploader(
         "Build Plan", type=["xlsx", "xls", "csv"],
         accept_multiple_files=False, key="plan"
     )
     submitted = st.form_submit_button("Submit")
-    use_demo = st.form_submit_button("Use Demo Data")
+    st.form_submit_button("Use Demo Data", on_click=_flag_use_demo)
     if submitted:
         if not (st.session_state.prod and st.session_state.down and st.session_state.plan):
             st.warning("Please upload production, downtime AND plan files.")
         else:
             st.session_state.uploaded = True
-    elif use_demo:
-        demo_dir = PROJECT_ROOT / "data" / "demo"
-        st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
-        st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
-        st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
-        st.session_state.uploaded = True
 
 # Allow bypassing uploads with bundled demo data
 if st.sidebar.button("Use Demo Data"):
-    demo_dir = PROJECT_ROOT / "data" / "demo"
-    st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
-    st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
-    st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
-    st.session_state.uploaded = True
+    _flag_use_demo()
 
 if not st.session_state.uploaded:
     st.sidebar.info("Upload all three files and click Submit.")
