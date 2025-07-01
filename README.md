@@ -16,10 +16,10 @@ exports are written to `outputs/`.
    ```
 
    This installs a `qualitylab` console script that provides commands for
-   ingesting data and training the models. The package requires the
-   additional libraries `lime` and `upsetplot` for model explainability
-   and visualisations, which are installed automatically via the
-   `setup.py` requirements.
+   ingesting data and training the models. The package requires several
+   additional libraries for model explainability and visualisations.  All
+   dependencies are listed in `requirements.txt` so services like
+   Streamlit Cloud can install them automatically.
 
 2. **Prepare your data**
 
