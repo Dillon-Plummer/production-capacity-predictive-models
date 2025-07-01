@@ -58,19 +58,18 @@ with st.sidebar.form("upload_form"):
         accept_multiple_files=False, key="plan"
     )
     submitted = st.form_submit_button("Submit")
+    use_demo = st.form_submit_button("Use Demo Data")
     if submitted:
         if not (st.session_state.prod and st.session_state.down and st.session_state.plan):
             st.warning("Please upload production, downtime AND plan files.")
         else:
             st.session_state.uploaded = True
-
-# Allow bypassing uploads with bundled demo data
-if st.sidebar.button("Use Demo Data"):
-    demo_dir = PROJECT_ROOT / "data" / "demo"
-    st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
-    st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
-    st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
-    st.session_state.uploaded = True
+    elif use_demo:
+        demo_dir = PROJECT_ROOT / "data" / "demo"
+        st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
+        st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
+        st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
+        st.session_state.uploaded = True
 
 if not st.session_state.uploaded:
     st.sidebar.info("Upload all three files and click Submit.")
