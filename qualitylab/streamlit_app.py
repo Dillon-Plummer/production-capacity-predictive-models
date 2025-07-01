@@ -8,9 +8,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import joblib
 from lime.lime_tabular import LimeTabularExplainer
-from .feature_engineering import add_recent_history, merge_downtime_features
+from feature_engineering import add_recent_history, merge_downtime_features
 from upsetplot import from_indicators, UpSet
-from .paths import PROJECT_ROOT, get_model_dir, get_output_dir
+from paths import PROJECT_ROOT, get_model_dir, get_output_dir
 import io
 import zipfile
 
