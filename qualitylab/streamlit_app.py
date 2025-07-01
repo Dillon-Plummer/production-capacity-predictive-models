@@ -47,9 +47,9 @@ def _flag_use_demo():
 # Load demo data before widgets are instantiated if flagged
 if st.session_state.get("use_demo"):
     demo_dir = PROJECT_ROOT / "data" / "demo"
-    st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
-    st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
-    st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
+    st.session_state.prod_files = [demo_dir / "production_demo_data.xlsx"]
+    st.session_state.down_files = [demo_dir / "downtime_demo_data.xlsx"]
+    st.session_state.plan_file = demo_dir / "build_plan_demo.xlsx"
     st.session_state.uploaded = True
     st.session_state.use_demo = False
 
@@ -77,14 +77,8 @@ with st.sidebar.form("upload_form"):
         if not (up_prod and up_down and up_plan):
             st.warning("Please upload production, downtime AND plan files.")
         else:
-            st.session_state.prod = up_prod
-            st.session_state.down = up_down
-            st.session_state.plan = up_plan
             st.session_state.uploaded = True
 
-# Allow bypassing uploads with bundled demo data
-if st.sidebar.button("Use Demo Data"):
-    _flag_use_demo()
 
 if not st.session_state.uploaded:
     st.sidebar.info("Upload all three files and click Submit.")
@@ -118,7 +112,7 @@ if st.session_state.exports:
 
 # — Ingest & clean production data —
 raw_prod = []
-for up in st.session_state.prod:
+for up in st.session_state.prod_files:
     if up.name.lower().endswith(("xlsx", "xls")):
         raw_prod.append(pd.read_excel(up, engine="openpyxl"))
     else:
@@ -164,7 +158,7 @@ df_fe = add_recent_history(df_prod, window_days=rolling_window)
 
 # — Ingest & clean downtime data —
 raw_down = []
-for up in st.session_state.down:
+for up in st.session_state.down_files:
     if up.name.lower().endswith(("xlsx", "xls")):
         raw_down.append(pd.read_excel(up, engine="openpyxl"))
     else:
@@ -228,7 +222,7 @@ df_fe["total_defects"] = df_fe[orig_defs].sum(axis=1)
 df_fe["defect_rate"]    = df_fe["total_defects"] / df_fe["qty_produced"]
 
 # — Ingest & clean build plan —
-up = st.session_state.plan
+up = st.session_state.plan_file
 if up.name.lower().endswith(("xlsx", "xls")):
     df_plan = pd.read_excel(up, engine="openpyxl")
 else:
