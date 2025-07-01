@@ -64,6 +64,14 @@ with st.sidebar.form("upload_form"):
         else:
             st.session_state.uploaded = True
 
+# Allow bypassing uploads with bundled demo data
+if st.sidebar.button("Use Demo Data"):
+    demo_dir = PROJECT_ROOT / "data" / "demo"
+    st.session_state.prod = [demo_dir / "production_demo_data.xlsx"]
+    st.session_state.down = [demo_dir / "downtime_demo_data.xlsx"]
+    st.session_state.plan = demo_dir / "build_plan_demo.xlsx"
+    st.session_state.uploaded = True
+
 if not st.session_state.uploaded:
     st.sidebar.info("Upload all three files and click Submit.")
     st.stop()
