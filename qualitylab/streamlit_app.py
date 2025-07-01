@@ -59,24 +59,27 @@ if "uploaded" not in st.session_state:
 
 with st.sidebar.form("upload_form"):
     st.header("Upload Data")
-    st.file_uploader(
+    up_prod = st.file_uploader(
         "Production sheets", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=True, key="prod"
+        accept_multiple_files=True, key="prod_files"
     )
-    st.file_uploader(
+    up_down = st.file_uploader(
         "Downtime sheets", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=True, key="down"
+        accept_multiple_files=True, key="down_files"
     )
-    st.file_uploader(
+    up_plan = st.file_uploader(
         "Build Plan", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=False, key="plan"
+        accept_multiple_files=False, key="plan_file"
     )
     submitted = st.form_submit_button("Submit")
     st.form_submit_button("Use Demo Data", on_click=_flag_use_demo)
     if submitted:
-        if not (st.session_state.prod and st.session_state.down and st.session_state.plan):
+        if not (up_prod and up_down and up_plan):
             st.warning("Please upload production, downtime AND plan files.")
         else:
+            st.session_state.prod = up_prod
+            st.session_state.down = up_down
+            st.session_state.plan = up_plan
             st.session_state.uploaded = True
 
 # Allow bypassing uploads with bundled demo data
