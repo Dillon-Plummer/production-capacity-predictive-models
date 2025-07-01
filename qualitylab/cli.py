@@ -31,30 +31,42 @@ def ingest_downtime(files):
     df.to_parquet(out_dir / "downtime.parquet")
     click.echo("✅ Downtime ingested")
 
-@cli.command("train-build-time")
-def train_build_time():
+def _train_build_time() -> None:
+    """Train the build time model using ingested production data."""
     data_path = get_data_dir() / "production.parquet"
     df = pd.read_parquet(data_path)
     train_build_time_model(df)
+
+
+@cli.command("train-build-time")
+def train_build_time() -> None:
+    """CLI wrapper around :func:`_train_build_time`."""
+    _train_build_time()
     click.echo("✅ Build-time model trained")
 
-@cli.command("train-defects")
-def train_defects():
+def _train_defects() -> None:
+    """Train the defect prediction model using ingested production data."""
     data_path = get_data_dir() / "production.parquet"
     df = pd.read_parquet(data_path)
     train_defect_model(df)
+
+
+@cli.command("train-defects")
+def train_defects() -> None:
+    """CLI wrapper around :func:`_train_defects`."""
+    _train_defects()
     click.echo("✅ Defect model trained")
 
 @cli.command("train-all")
 def train_all():
     """Train all models in sequence."""
-    train_build_time()
-    train_defects()
-    train_build_quantity()
+    _train_build_time()
+    _train_defects()
+    _train_build_quantity()
 
 
-@cli.command('train-build-quantity')
-def train_build_quantity():
+def _train_build_quantity() -> None:
+    """Train the build quantity model using production and downtime data."""
     data_dir = get_data_dir()
     prod_path = data_dir / 'production.parquet'
     down_path = data_dir / 'downtime.parquet'
@@ -66,6 +78,12 @@ def train_build_quantity():
     df_prod = add_recent_history(df_prod)
     df_down = pd.read_parquet(down_path)
     train_build_quantity_model(df_prod, df_down)
+
+
+@cli.command('train-build-quantity')
+def train_build_quantity() -> None:
+    """CLI wrapper around :func:`_train_build_quantity`."""
+    _train_build_quantity()
     click.echo("✅ Build-quantity model trained")
 
 if __name__ == "__main__":
