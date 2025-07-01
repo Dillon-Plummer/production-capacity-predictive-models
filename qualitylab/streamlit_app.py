@@ -712,8 +712,11 @@ with t2:
                             raw_col = raw_col.split(op)[0].strip()
                             break
 
-                    # for downtime, pull the actual modes you stored
+                    # for downtime, only show when downtime actually occurred
                     if raw_col == "downtime_min":
+                        # skip if there was no downtime or no recorded modes
+                        if r.get("downtime_min", 0) <= 0 or str(r.get("failure_modes", "")).upper() == "NONE":
+                            continue
                         # r["failure_modes"] is the comma-joined list you built above
                         reason = f"{pretty_feat(raw_col)} (mode(s): {r['failure_modes']})"
                     elif cat is not None:
