@@ -60,35 +60,16 @@ if st.session_state.get("use_demo"):
     st.session_state.uploaded = True
     st.session_state.use_demo = False
 
-# — Sidebar upload form w/ session state —
+# — Sidebar load button —
 if "uploaded" not in st.session_state:
     st.session_state.uploaded = False
 
-with st.sidebar.form("upload_form"):
-    st.header("Upload Data")
-    up_prod = st.file_uploader(
-        "Production sheets", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=True, key="prod_files"
-    )
-    up_down = st.file_uploader(
-        "Downtime sheets", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=True, key="down_files"
-    )
-    up_plan = st.file_uploader(
-        "Build Plan", type=["xlsx", "xls", "csv"],
-        accept_multiple_files=False, key="plan_file"
-    )
-    submitted = st.form_submit_button("Submit")
-    st.form_submit_button("Use Demo Data", on_click=_flag_use_demo)
-    if submitted:
-        if not (up_prod and up_down and up_plan):
-            st.warning("Please upload production, downtime AND plan files.")
-        else:
-            st.session_state.uploaded = True
+st.sidebar.header("Load Data")
+st.sidebar.button("Load Demo Data", on_click=_flag_use_demo, use_container_width=True)
 
 
 if not st.session_state.uploaded:
-    st.sidebar.info("Upload all three files and click Submit.")
+    st.sidebar.info("Click 'Load Demo Data' to begin analysis.")
     st.stop()
 
 # Rolling window slider
@@ -118,10 +99,12 @@ if st.session_state.exports:
     )
 
 # — Ingest & clean production data —
-prod_sources = st.session_state.prod_files or st.session_state.demo_prod_files
+# This logic now defaults to the demo files since the user-uploaded file keys will be empty
+prod_sources = st.session_state.get("prod_files", []) or st.session_state.demo_prod_files
 raw_prod = []
 for up in prod_sources:
-    if up.name.lower().endswith(("xlsx", "xls")):
+    # Since we know the demo data paths are Path objects, we can check for that
+    if isinstance(up, Path) or up.name.lower().endswith(("xlsx", "xls")):
         raw_prod.append(pd.read_excel(up, engine="openpyxl"))
     else:
         raw_prod.append(pd.read_csv(up))
@@ -165,10 +148,10 @@ for c in orig_defs:
 df_fe = add_recent_history(df_prod, window_days=rolling_window)
 
 # — Ingest & clean downtime data —
-down_sources = st.session_state.down_files or st.session_state.demo_down_files
+down_sources = st.session_state.get("down_files", []) or st.session_state.demo_down_files
 raw_down = []
 for up in down_sources:
-    if up.name.lower().endswith(("xlsx", "xls")):
+    if isinstance(up, Path) or up.name.lower().endswith(("xlsx", "xls")):
         raw_down.append(pd.read_excel(up, engine="openpyxl"))
     else:
         raw_down.append(pd.read_csv(up))
@@ -208,14 +191,6 @@ else:
 # — Merge downtime into history features —
 df_fe = merge_downtime_features(df_fe, df_down)
 
-# ### DEBUG TEST ###
-# # (after merging)
-# counts = df_fe["failure_mode"].value_counts().reset_index()
-# counts.columns = ["failure_mode", "count"]
-# st.write("How many builds got each failure_mode after merging:")
-# st.dataframe(counts)
-# ###
-
 # — Save a copy of full, unfiltered history —
 df_fe_full = df_fe.copy()
 
@@ -231,8 +206,8 @@ df_fe["total_defects"] = df_fe[orig_defs].sum(axis=1)
 df_fe["defect_rate"]    = df_fe["total_defects"] / df_fe["qty_produced"]
 
 # — Ingest & clean build plan —
-up = st.session_state.plan_file or st.session_state.demo_plan_file
-if up.name.lower().endswith(("xlsx", "xls")):
+up = st.session_state.get("plan_file", None) or st.session_state.demo_plan_file
+if isinstance(up, Path) or up.name.lower().endswith(("xlsx", "xls")):
     df_plan = pd.read_excel(up, engine="openpyxl")
 else:
     df_plan = pd.read_csv(up)
@@ -266,11 +241,11 @@ if "line" not in df_plan.columns:
 df_plan["line"] = df_plan["line"].astype(str).str.strip().str.upper()
 df_plan["part_number"] = df_plan["part_number"].astype(str).str.strip()
 
-### DEBUG TEST ###
+
 st.write("🗓️ Production date range:",
-         df_prod["build_start_date"].min(), "→", df_prod["build_start_date"].max())
+         df_prod["build_start_date"].min().date(), "→", df_prod["build_start_date"].max().date())
 st.write("🗓️ Plan start dates:",
-         df_plan["plan_start_date"].min(), "→", df_plan["plan_start_date"].max())
+         df_plan["plan_start_date"].min().date(), "→", df_plan["plan_start_date"].max().date())
 
 # — Build plan features dynamically, include real 4-week defect sums & failure_mode —
 def make_plan_features(r):
@@ -346,14 +321,7 @@ def make_plan_features(r):
 # If there's plan data, build df_plan_feats; otherwise create an empty DataFrame with the correct columns:
 if not df_plan.empty:
     df_plan_feats = pd.DataFrame([make_plan_features(r) for _, r in df_plan.iterrows()])
-    ### DEBUG TEST ###
-    st.write("Plan-feature debug")
-    st.dataframe(
-        df_plan_feats[
-        ['part_number','plan_start_date','build_time_4w_avg','downtime_min']
-        ],
-        use_container_width=True
-    )
+
 else:
     # When plan is empty, define every column that make_plan_features would have returned:
     df_plan_feats = pd.DataFrame(columns=[
@@ -375,9 +343,9 @@ defect_model  = joblib.load(get_latest_model("defect_model_*.pkl"))
 qty_model     = joblib.load(get_latest_model("build_quantity_model_*.pkl"))
 
 # ─── Extract feature‐lists exactly as used by each model ─────────────────────
-bt_feats          = list(build_model.feature_names_in_)    # e.g. [..., "part_number", "line", "failure_mode"]
-tq_feats          = list(qty_model.feature_names_in_)      # e.g. [..., "part_number", "line", "failure_mode"]
-def_model_feats   = list(defect_model.feature_names_in_)   # needed for defect predictions
+bt_feats          = list(build_model.feature_names_in_)
+tq_feats          = list(qty_model.feature_names_in_)
+def_model_feats   = list(defect_model.feature_names_in_)
 
 # ─── (Re-)predict on df_fe so df_fe[tq_feats], df_fe[bt_feats], and pred_{defects} exist ─────────
 # Build-time predictions on history
@@ -591,10 +559,6 @@ df_fe = df_fe.loc[
     & (df_fe["part_number"].isin(st.session_state.selected_parts))
 ]
 
-
-
-
-
 # ─── Tabs ──────────────────────────────────────────────────────────────────
 tabs = st.tabs([
         "Model Performance",
@@ -606,6 +570,7 @@ t1, t2, t3, t4 = tabs
 
 # ─── Tab 1: Model Performance ──────────────────────────────────────────────────────
 with t1:
+    st.header("Model Performance vs. Historical Data")
     fig, ax = plt.subplots()
     sns.scatterplot(
         data=df_fe,
@@ -648,7 +613,7 @@ with t1:
 
 # ─── Tab 2: Capacity Predictions ─────────
 with t2:
-    st.subheader("Capacity Predictions")
+    st.header("Capacity Predictions for Build Plan")
 
     if df_plan_feats.empty:
         st.info("No plan data available for your chosen part(s).")
@@ -683,15 +648,20 @@ with t2:
 
             st.write(f"**Part {pn}**")
             delta_qty   = planned_qty - pred_qty
-            st.write(f"- Planned Qty: {planned_qty:.0f}")
-            st.write(f"- Predicted capacity: {pred_qty:.0f} parts")
+            st.metric(label="Planned Quantity", value=f"{planned_qty:.0f}")
+            st.metric(label="Predicted Capacity", value=f"{pred_qty:.0f}", delta=f"{pred_qty - planned_qty:.0f} parts")
+            
             if delta_qty > 0:
-                st.write(f"- Shortfall of {delta_qty:.0f} parts.")
-
                 # build LIME vector
-                pn_code   = inv_part_number[r["part_number"]]
-                line_code = inv_line[r["line"]]
-                fm_code   = inv_failure_mode[r["failure_mode"]]
+                pn_code   = inv_part_number.get(r["part_number"])
+                line_code = inv_line.get(r["line"])
+                fm_code   = inv_failure_mode.get(r["failure_mode"])
+                
+                # Check if all keys were found
+                if pn_code is None or line_code is None or fm_code is None:
+                    st.warning(f"Could not generate LIME explanation for Part {pn} due to unseen categorical values.")
+                    continue
+
                 vec       = [r[c] for c in numeric_tq] + [pn_code, line_code, fm_code]
 
                 exp_qty = qty_explainer.explain_instance(
@@ -724,57 +694,46 @@ with t2:
                     scaled = raw_loss/total * delta_qty
                     pct    = scaled/delta_qty*100
 
-                    # unwrap categorical encoding
                     if " = " in feat_name:
                         code, cat = feat_name.split(" = ")
                         raw_col = code.replace("_code", "")
                     else:
                         raw_col, cat = feat_name, None
 
-                    # strip any inequality thresholds from LIME
                     for op in ["<=", ">=", "<", ">"]:
                         if op in raw_col:
                             raw_col = raw_col.split(op)[0].strip()
                             break
 
-                    # for downtime, only show when downtime actually occurred
                     if raw_col == "downtime_min":
-                        # skip if there was no downtime or no recorded modes
                         fm = str(r.get("failure_modes", "")).strip().upper()
                         if r.get("downtime_min", 0) <= 0 or fm in ("", "NONE", "NAN"):
                             continue
-                        # r["failure_modes"] is the comma-joined list you built above
                         reason = f"{pretty_feat(raw_col)} (mode(s): {r['failure_modes']})"
                     elif cat is not None:
                         reason = f"{pretty_feat(raw_col)} = {cat}"
                     else:
                         val = r.get(raw_col)
-                        if isinstance(val, float):
-                            reason = f"{pretty_feat(raw_col)} = {val:.2f}"
-                        elif val is not None:
-                            reason = f"{pretty_feat(raw_col)} = {val}"
-                        else:
-                            reason = pretty_feat(raw_col)
-
+                        reason = f"{pretty_feat(raw_col)} = {val:.2f}" if isinstance(val, float) else f"{pretty_feat(raw_col)} = {val}"
 
                     rows.append({
                         "Reason":         reason,
                         "Parts Lost":     int(round(scaled)),
                         "% of Shortfall": f"{pct:.1f}%"
                     })
+                
+                if rows:
+                    st.write("**Quantity Shortfall Breakdown**")
+                    st.table(pd.DataFrame(rows).sort_values("Parts Lost", ascending=False))
 
-                st.write("**Quantity Shortfall Breakdown**")
-                st.table(pd.DataFrame(rows).sort_values("Parts Lost", ascending=False))
-
-            # … your build‐time overrun section follows similarly …
             st.write("---")
 
 
 # ─── Tab 3: Descriptive Statistics ───────────────────────────────────────────
 with t3:
-    st.subheader("Descriptive Statistics")
+    st.header("Descriptive Statistics of Historical Data")
 
-    # 1) Summary statistics (mean, median, mode, std, min, max)
+    # 1) Summary statistics
     numeric_cols = df_fe.select_dtypes(include="number").columns.tolist()
     desc = df_fe[numeric_cols].describe().T
     desc = desc.rename(columns={"50%": "median"})
@@ -796,28 +755,32 @@ with t3:
     sns.barplot(data=avg_qty, x="part_number", y="qty_produced", ax=ax)
     ax.set_xlabel("Part Number")
     ax.set_ylabel("Avg Qty Produced")
+    plt.xticks(rotation=45, ha='right')
     st.pyplot(fig, use_container_width=True)
 
-    # 3) Failure-Mode Counts per Part ─────────────────────────
+    # 3) Failure-Mode Counts per Part
     st.write("**Failure Mode Counts per Part**")
-    # consider only actual downtime events
     df_fail = df_fe[df_fe['failure_mode'] != 'NONE']
-    df_fail_counts = (
-        df_fail
-        .groupby(['part_number', 'failure_mode'])
-        .size()
-        .reset_index(name='count')
-    )
-    fig, ax = plt.subplots()
-    sns.barplot(
-        data=df_fail_counts,
-        x='part_number', y='count', hue='failure_mode',
-        dodge=True, ax=ax
-    )
-    ax.set_xlabel("Part Number")
-    ax.set_ylabel("Number of Downtime Events")
-    ax.legend(title="Failure Mode", bbox_to_anchor=(1,1))
-    st.pyplot(fig, use_container_width=True)
+    if not df_fail.empty:
+        df_fail_counts = (
+            df_fail
+            .groupby(['part_number', 'failure_mode'])
+            .size()
+            .reset_index(name='count')
+        )
+        fig, ax = plt.subplots()
+        sns.barplot(
+            data=df_fail_counts,
+            x='part_number', y='count', hue='failure_mode',
+            dodge=True, ax=ax
+        )
+        ax.set_xlabel("Part Number")
+        ax.set_ylabel("Number of Downtime Events")
+        ax.legend(title="Failure Mode", bbox_to_anchor=(1,1))
+        plt.xticks(rotation=45, ha='right')
+        st.pyplot(fig, use_container_width=True)
+    else:
+        st.info("No failure modes recorded for the selected data.")
 
     # 4) Line chart: weekly average defect_rate over time
     st.write("**Weekly Avg Defect Rate Over Time**")
@@ -847,28 +810,19 @@ with t3:
     ax1.tick_params(axis="x", rotation=45)
 
     ax2 = ax1.twinx()
-    ax2.plot(defect_labels, cumperc.values, marker="o")
+    ax2.plot(defect_labels, cumperc.values, marker="o", color='r')
     ax2.set_ylabel("Cumulative %")
     st.pyplot(fig, use_container_width=True)
 
-    # 6) Defect co-occurrence heatmap (only raw defect counts)
+    # 6) Defect co-occurrence heatmap
     st.write("**Defect Co-occurrence Heatmap**")
     raw_defs = orig_defs
     corr     = df_fe[raw_defs].corr()
-
-    # create a mask for the upper triangle
     mask = np.triu(np.ones_like(corr, dtype=bool))
-
     fig, ax = plt.subplots()
     sns.heatmap(
-        corr,
-        mask=mask,               # <-- only show lower triangle
-        annot=True,
-        fmt=".2f",
-        cmap="vlag",
-        center=0,
-        linewidths=0.5,
-        ax=ax
+        corr, mask=mask, annot=True, fmt=".2f", cmap="vlag",
+        center=0, linewidths=0.5, ax=ax
     )
     labels = [c.replace("qty_of_defect_", "") for c in raw_defs]
     ax.set_xticklabels(labels, rotation=45, ha="right")
@@ -882,70 +836,51 @@ with t3:
 
 # ─── Tab 4: Co-occurrence Visualizations ─────────────────────────────────────
 with t4:
-    st.subheader("Co-occurrence Visualizations")
+    st.header("Co-occurrence Visualizations")
 
-    # 1) 100%-Stacked Bar
-    st.write("**100%-Stacked Bar**")
     base_defs = orig_defs
-    ncols = 2
-    nrows = (len(base_defs) + ncols - 1) // ncols
+    if base_defs:
+        # 1) 100%-Stacked Bar
+        st.write("**Proportion of Co-occurring Defects**")
+        st.info("Each chart shows: when the defect in the title occurred, what other defects also occurred in the same build?")
+        ncols = 2
+        nrows = (len(base_defs) + ncols - 1) // ncols
 
-    # Enable constrained_layout so matplotlib adds padding automatically
-    fig, axes = plt.subplots(
-        nrows, ncols,
-        figsize=(12, 4 * nrows),
-        constrained_layout=True
-    )
-    axes = axes.flatten()
-
-    for ax_i, fd in zip(axes, base_defs):
-        mask_fd = df_fe[fd] > 0
-        co_props = (
-            df_fe.loc[mask_fd, base_defs]
-                 .gt(0)
-                 .mean()
-                 .sort_values(ascending=False)
+        fig, axes = plt.subplots(
+            nrows, ncols,
+            figsize=(12, 5 * nrows),
+            constrained_layout=True
         )
-        labels = [c.replace("qty_of_defect_", "") for c in co_props.index]
+        axes = axes.flatten()
 
-        # Set bar height smaller so they don’t touch
-        ax_i.barh(labels, co_props.values, height=0.6)
+        for ax_i, fd in enumerate(base_defs):
+            ax = axes[ax_i]
+            mask_fd = df_fe[fd] > 0
+            if mask_fd.any():
+                co_props = (
+                    df_fe.loc[mask_fd, base_defs]
+                         .gt(0)
+                         .mean()
+                         .sort_values(ascending=True)
+                )
+                labels = [c.replace("qty_of_defect_", "") for c in co_props.index]
+                ax.barh(labels, co_props.values, height=0.7)
+                ax.set_xlim(0, 1)
+                ax.set_title(f"Given: {fd.replace('qty_of_defect_', '')}")
+                ax.set_xlabel("Proportion of builds")
+            else:
+                ax.text(0.5, 0.5, "No occurrences", ha='center', va='center')
+                ax.set_title(f"Given: {fd.replace('qty_of_defect_', '')}")
 
-        ax_i.set_xlim(0, 1)
-        ax_i.set_title(fd.replace("qty_of_defect_", ""))
-        ax_i.set_xlabel("Proportion of builds with this defect")
+        for ax_unused in axes[len(base_defs):]:
+            ax_unused.axis("off")
 
-    # turn off any unused axes
-    for ax_unused in axes[len(base_defs):]:
-        ax_unused.axis("off")
+        st.pyplot(fig, use_container_width=True)
 
-    st.pyplot(fig, use_container_width=True)
+    else:
+        st.info("No defect columns found to analyze co-occurrences.")
 
-    # 2) Weekly Stacked-Area
-    st.write("**Weekly Stacked-Area**")
-    focus = base_defs[0]
-    weekly = (
-        df_fe.assign(week=lambda d: d.build_start_date.dt.to_period("W").dt.start_time)
-             .groupby("week")
-             .apply(lambda g: g[g[focus] > 0][orig_defs].gt(0).mean())
-             .reset_index()
-             .melt(id_vars="week", var_name="defect", value_name="prop")
-    )
-    fig, ax = plt.subplots()
-    for dname, grp in weekly.groupby("defect"):
-        ax.fill_between(grp["week"], grp["prop"], label=dname.replace("qty_of_defect_", ""))
-    ax.legend(title="Co-Defect", bbox_to_anchor=(1, 1))
-    ax.set(xlabel="Week", ylabel="Proportion")
-    st.pyplot(fig, use_container_width=True)
-
-    # # 3) UpSet Plot
-    # st.write("**UpSet Plot**")
-    # bools = df_fe[orig_defs].gt(0).rename(columns=lambda c: c.replace("qty_of_defect_", ""))
-    # combo_counts = from_indicators(bools)
-    # fig = plt.figure(figsize=(8, 6))
-    # UpSet(combo_counts, subset_size="count", show_counts=True).plot(fig=fig)
-    # st.pyplot(fig, use_container_width=True)
 
 # — Raw data preview —
-st.subheader("Production Data & Predictions")
-st.dataframe(df_fe, use_container_width=False)
+st.subheader("Filtered Production Data & Predictions")
+st.dataframe(df_fe, use_container_width=True)
