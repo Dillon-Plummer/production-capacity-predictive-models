@@ -31,6 +31,12 @@ if "down_files" not in st.session_state:
     st.session_state.down_files = []
 if "plan_file" not in st.session_state:
     st.session_state.plan_file = None
+if "demo_prod_files" not in st.session_state:
+    st.session_state.demo_prod_files = []
+if "demo_down_files" not in st.session_state:
+    st.session_state.demo_down_files = []
+if "demo_plan_file" not in st.session_state:
+    st.session_state.demo_plan_file = None
 
 # Ensure project root on path
 project_root = PROJECT_ROOT
@@ -53,9 +59,9 @@ def _flag_use_demo():
 # Load demo data before widgets are instantiated if flagged
 if st.session_state.get("use_demo"):
     demo_dir = PROJECT_ROOT / "data" / "demo"
-    st.session_state.prod_files = [demo_dir / "production_demo_data.xlsx"]
-    st.session_state.down_files = [demo_dir / "downtime_demo_data.xlsx"]
-    st.session_state.plan_file = demo_dir / "build_plan_demo.xlsx"
+    st.session_state.demo_prod_files = [demo_dir / "production_demo_data.xlsx"]
+    st.session_state.demo_down_files = [demo_dir / "downtime_demo_data.xlsx"]
+    st.session_state.demo_plan_file = demo_dir / "build_plan_demo.xlsx"
     st.session_state.uploaded = True
     st.session_state.use_demo = False
 
@@ -117,8 +123,9 @@ if st.session_state.exports:
     )
 
 # — Ingest & clean production data —
+prod_sources = st.session_state.prod_files or st.session_state.demo_prod_files
 raw_prod = []
-for up in st.session_state.prod_files:
+for up in prod_sources:
     if up.name.lower().endswith(("xlsx", "xls")):
         raw_prod.append(pd.read_excel(up, engine="openpyxl"))
     else:
@@ -163,8 +170,9 @@ for c in orig_defs:
 df_fe = add_recent_history(df_prod, window_days=rolling_window)
 
 # — Ingest & clean downtime data —
+down_sources = st.session_state.down_files or st.session_state.demo_down_files
 raw_down = []
-for up in st.session_state.down_files:
+for up in down_sources:
     if up.name.lower().endswith(("xlsx", "xls")):
         raw_down.append(pd.read_excel(up, engine="openpyxl"))
     else:
@@ -228,7 +236,7 @@ df_fe["total_defects"] = df_fe[orig_defs].sum(axis=1)
 df_fe["defect_rate"]    = df_fe["total_defects"] / df_fe["qty_produced"]
 
 # — Ingest & clean build plan —
-up = st.session_state.plan_file
+up = st.session_state.plan_file or st.session_state.demo_plan_file
 if up.name.lower().endswith(("xlsx", "xls")):
     df_plan = pd.read_excel(up, engine="openpyxl")
 else:
