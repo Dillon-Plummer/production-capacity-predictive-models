@@ -25,12 +25,7 @@ if "exports" not in st.session_state:
     st.session_state.exports = {}
 if "rolling_window" not in st.session_state:
     st.session_state.rolling_window = 28
-if "prod_files" not in st.session_state:
-    st.session_state.prod_files = []
-if "down_files" not in st.session_state:
-    st.session_state.down_files = []
-if "plan_file" not in st.session_state:
-    st.session_state.plan_file = None
+# The initializations for prod_files, down_files, and plan_file have been removed.
 if "demo_prod_files" not in st.session_state:
     st.session_state.demo_prod_files = []
 if "demo_down_files" not in st.session_state:
@@ -380,9 +375,9 @@ defect_model  = joblib.load(get_latest_model("defect_model_*.pkl"))
 qty_model     = joblib.load(get_latest_model("build_quantity_model_*.pkl"))
 
 # ─── Extract feature‐lists exactly as used by each model ─────────────────────
-bt_feats         = list(build_model.feature_names_in_)    # e.g. [..., "part_number", "line", "failure_mode"]
-tq_feats         = list(qty_model.feature_names_in_)      # e.g. [..., "part_number", "line", "failure_mode"]
-def_model_feats  = list(defect_model.feature_names_in_)   # needed for defect predictions
+bt_feats          = list(build_model.feature_names_in_)    # e.g. [..., "part_number", "line", "failure_mode"]
+tq_feats          = list(qty_model.feature_names_in_)      # e.g. [..., "part_number", "line", "failure_mode"]
+def_model_feats   = list(defect_model.feature_names_in_)   # needed for defect predictions
 
 # ─── (Re-)predict on df_fe so df_fe[tq_feats], df_fe[bt_feats], and pred_{defects} exist ─────────
 # Build-time predictions on history
@@ -524,10 +519,10 @@ time_explainer = LimeTabularExplainer(
 
 # ─── Define feature_name_map & pretty_feat ────────────────────────────────────
 feature_name_map = {
-    "build_time_days":    "build time (days)",
-    "build_time_4w_avg":  "historical build time",
-    "defect_rate":        "defect rate",
-    "downtime_min":       "downtime",
+    "build_time_days":     "build time (days)",
+    "build_time_4w_avg":   "historical build time",
+    "defect_rate":         "defect rate",
+    "downtime_min":        "downtime",
     # You can extend this map for any additional numeric features if desired
 }
 
@@ -763,8 +758,8 @@ with t2:
 
 
                     rows.append({
-                        "Reason":        reason,
-                        "Parts Lost":    int(round(scaled)),
+                        "Reason":         reason,
+                        "Parts Lost":     int(round(scaled)),
                         "% of Shortfall": f"{pct:.1f}%"
                     })
 
