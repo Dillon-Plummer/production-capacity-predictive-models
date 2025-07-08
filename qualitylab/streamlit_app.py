@@ -38,6 +38,19 @@ def load_models():
 df, defect_cols = load_data()
 qty_model, bt_model, defect_model = load_models()
 
+
+# --- FIX: Align DataFrame columns with all model features ---
+# This block prevents the KeyError by ensuring any feature a model needs
+# exists in the DataFrame. If it's missing, it's added as a column of zeros.
+all_model_feats = set(qty_model.feature_names_in_) | set(bt_model.feature_names_in_) | set(defect_model.feature_names_in_)
+
+for feat in all_model_feats:
+    if feat not in df.columns:
+        st.warning(f"Feature '{feat}' was not in the loaded data. Adding it as a column of zeros.")
+        df[feat] = 0
+# --- End of Fix ---
+
+
 X_qty = df[qty_model.feature_names_in_]
 X_bt = df[bt_model.feature_names_in_]
 X_def = df[defect_model.feature_names_in_]
@@ -49,7 +62,15 @@ pred_def = defect_model.predict(X_def)
 pred_df = df[["part_number", "line", "qty_produced", "build_time_days", "build_start_date"]].copy()
 pred_df["pred_qty"] = pred_qty
 pred_df["pred_build_time"] = pred_bt
-for i, col in enumerate(defect_cols):
+
+# FIX: Identify the defect columns the model is actually predicting,
+# which is more robust than using the list from the input data.
+output_defect_cols = [c for c in defect_model.feature_names_in_ if c.startswith("qty_of_defect_")]
+
+for i, col in enumerate(output_defect_cols):
+    # Ensure the actual values are also in pred_df for plotting
+    if col not in pred_df.columns:
+        pred_df[col] = df[col]
     pred_df[f"pred_{col}"] = pred_def[:, i]
 
 
@@ -57,13 +78,18 @@ tab_pred, tab_perf = st.tabs(["Predictions", "Model Performance"])
 
 with tab_pred:
     st.subheader("Capacity Predictions")
-    st.dataframe(pred_df)
+    # Display only the most relevant prediction columns
+    display_cols = [
+        "part_number", "line", "qty_produced", "pred_qty",
+        "build_time_days", "pred_build_time", "build_start_date"
+    ]
+    st.dataframe(pred_df[display_cols])
 
 with tab_perf:
     st.subheader("Defect Model Performance Over Time")
 
-    # Iterate through each defect type and create a line plot
-    for col in defect_cols:
+    # FIX: Loop over the robust list of output defect columns
+    for col in output_defect_cols:
         actual_col = col
         pred_col = f"pred_{col}"
 
