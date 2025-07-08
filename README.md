@@ -1,4 +1,6 @@
 # Predicting manufacturing capacity
+![hero_image](https://github.com/DillonGelman/production-capacity-predictive-models/blob/main/hero-image.png)
+
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gelman-manufacturing-predictions.streamlit.app/)
 
 This is a Streamlit app and group of 3 machine learning models to predict production capacity in a regulated manufacturing setting (medical devices).  The models are fully transparent for ISO and FDA audits, based on supervised Random Forest predictors.  The model explainability ensures compliance with the ISO 13485 and ISO 14971 standards.
