@@ -39,15 +39,28 @@ df, defect_cols = load_data()
 qty_model, bt_model, defect_model = load_models()
 
 
-# --- FIX: Align DataFrame columns with all model features ---
-# This block prevents the KeyError by ensuring any feature a model needs
-# exists in the DataFrame. If it's missing, it's added as a column of zeros.
-all_model_feats = set(qty_model.feature_names_in_) | set(bt_model.feature_names_in_) | set(defect_model.feature_names_in_)
+# --- NEW: Explicit Column Validation Check ---
+st.header("Data Validation")
+required_features = set(qty_model.feature_names_in_) | set(bt_model.feature_names_in_) | set(defect_model.feature_names_in_)
+data_columns = set(df.columns)
 
-for feat in all_model_feats:
-    if feat not in df.columns:
-        st.warning(f"Feature '{feat}' was not in the loaded data. Adding it as a column of zeros.")
-        df[feat] = 0
+missing_features = required_features - data_columns
+
+if missing_features:
+    with st.expander("⚠️ Found Missing Columns in Loaded Data", expanded=True):
+        st.error(
+            "The following features are required by the models but were not found in the loaded data. "
+            "They will be programmatically added as columns with a value of 0 to prevent the app from crashing."
+        )
+        st.json(sorted(list(missing_features)))
+else:
+    st.success("✅ Data columns successfully validated against model requirements.")
+
+# --- FIX: Align DataFrame columns with all model features ---
+# This loop prevents the KeyError by ensuring any feature a model needs
+# exists in the DataFrame.
+for feat in missing_features:
+    df[feat] = 0
 # --- End of Fix ---
 
 
@@ -63,12 +76,9 @@ pred_df = df[["part_number", "line", "qty_produced", "build_time_days", "build_s
 pred_df["pred_qty"] = pred_qty
 pred_df["pred_build_time"] = pred_bt
 
-# FIX: Identify the defect columns the model is actually predicting,
-# which is more robust than using the list from the input data.
 output_defect_cols = [c for c in defect_model.feature_names_in_ if c.startswith("qty_of_defect_")]
 
 for i, col in enumerate(output_defect_cols):
-    # Ensure the actual values are also in pred_df for plotting
     if col not in pred_df.columns:
         pred_df[col] = df[col]
     pred_df[f"pred_{col}"] = pred_def[:, i]
@@ -78,7 +88,6 @@ tab_pred, tab_perf = st.tabs(["Predictions", "Model Performance"])
 
 with tab_pred:
     st.subheader("Capacity Predictions")
-    # Display only the most relevant prediction columns
     display_cols = [
         "part_number", "line", "qty_produced", "pred_qty",
         "build_time_days", "pred_build_time", "build_start_date"
@@ -88,17 +97,14 @@ with tab_pred:
 with tab_perf:
     st.subheader("Defect Model Performance Over Time")
 
-    # FIX: Loop over the robust list of output defect columns
     for col in output_defect_cols:
         actual_col = col
         pred_col = f"pred_{col}"
 
-        # Prepare data for plotting: group by week and sum the counts
         plot_data = pred_df[['build_start_date', actual_col, pred_col]].copy()
         plot_data = plot_data.set_index('build_start_date')
         weekly_data = plot_data.resample('W').sum()
 
-        # Melt the DataFrame to make it compatible with seaborn's 'hue'
         melted_weekly = weekly_data.reset_index().melt(
             id_vars='build_start_date',
             value_vars=[actual_col, pred_col],
@@ -106,13 +112,11 @@ with tab_perf:
             value_name='Count'
         )
         
-        # Rename for a cleaner legend
         melted_weekly['Source'] = melted_weekly['Source'].map({
             actual_col: 'Actual',
             pred_col: 'Predicted'
         })
 
-        # Create the plot
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.lineplot(
             data=melted_weekly,
@@ -123,7 +127,6 @@ with tab_perf:
             marker='o'
         )
 
-        # Prettify the plot
         chart_title = col.replace("qty_of_defect_", "").replace("_", " ").title()
         ax.set_title(f"Performance for: {chart_title}", fontsize=16)
         ax.set_xlabel("Week")
