@@ -84,3 +84,9 @@ training artefacts.
 
 The app loads the most recent models from `models/` and provides an interface to
 upload new spreadsheets, visualise predictions and export results.
+
+**User-friendly features**
+
+- Sidebar filter to focus on specific part numbers.
+- Summary metrics highlighting total production and average build time.
+- Interactive trend chart comparing predicted and actual quantity over time.
