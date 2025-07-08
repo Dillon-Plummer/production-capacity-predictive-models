@@ -38,15 +38,15 @@ def load_models():
 df, defect_cols = load_data()
 qty_model, bt_model, defect_model = load_models()
 
-X_qty = df[["build_time_days", "build_time_4w_avg", "defect_rate", "downtime_min", "part_number", "line", "failure_mode"]]
-X_bt = df[["build_time_4w_avg"] + [f"{c}_4w_sum" for c in defect_cols] + ["part_number", "line", "failure_mode"]]
-X_def = df[["build_time_days", "build_time_4w_avg"] + [f"{c}_4w_sum" for c in defect_cols] + ["part_number", "line"]]
+X_qty = df[qty_model.feature_names_in_]
+X_bt = df[bt_model.feature_names_in_]
+X_def = df[defect_model.feature_names_in_]
 
 pred_qty = qty_model.predict(X_qty)
 pred_bt = bt_model.predict(X_bt)
 pred_def = defect_model.predict(X_def)
 
-pred_df = df[["part_number", "line", "qty_produced", "build_time_days"]].copy()
+pred_df = df[["part_number", "line", "qty_produced", "build_time_days", "build_start_date"]].copy()
 pred_df["pred_qty"] = pred_qty
 pred_df["pred_build_time"] = pred_bt
 for i, col in enumerate(defect_cols):
@@ -60,25 +60,50 @@ with tab_pred:
     st.dataframe(pred_df)
 
 with tab_perf:
-    st.subheader("Model Performance")
-    fig1, ax1 = plt.subplots()
-    sns.scatterplot(x=df["qty_produced"], y=pred_qty, ax=ax1)
-    ax1.set_xlabel("Actual quantity produced")
-    ax1.set_ylabel("Predicted quantity")
-    ax1.set_title("Build Quantity Model")
-    st.pyplot(fig1)
+    st.subheader("Defect Model Performance Over Time")
 
-    fig2, ax2 = plt.subplots()
-    sns.scatterplot(x=df["build_time_days"], y=pred_bt, ax=ax2)
-    ax2.set_xlabel("Actual build time (days)")
-    ax2.set_ylabel("Predicted build time (days)")
-    ax2.set_title("Build Time Model")
-    st.pyplot(fig2)
+    # Iterate through each defect type and create a line plot
+    for col in defect_cols:
+        actual_col = col
+        pred_col = f"pred_{col}"
 
-    first_def = defect_cols[0]
-    fig3, ax3 = plt.subplots()
-    sns.scatterplot(x=df[first_def], y=pred_def[:, 0], ax=ax3)
-    ax3.set_xlabel(f"Actual {first_def}")
-    ax3.set_ylabel(f"Predicted {first_def}")
-    ax3.set_title("Defect Model (first defect type)")
-    st.pyplot(fig3)
+        # Prepare data for plotting: group by week and sum the counts
+        plot_data = pred_df[['build_start_date', actual_col, pred_col]].copy()
+        plot_data = plot_data.set_index('build_start_date')
+        weekly_data = plot_data.resample('W').sum()
+
+        # Melt the DataFrame to make it compatible with seaborn's 'hue'
+        melted_weekly = weekly_data.reset_index().melt(
+            id_vars='build_start_date',
+            value_vars=[actual_col, pred_col],
+            var_name='Source',
+            value_name='Count'
+        )
+        
+        # Rename for a cleaner legend
+        melted_weekly['Source'] = melted_weekly['Source'].map({
+            actual_col: 'Actual',
+            pred_col: 'Predicted'
+        })
+
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(12, 6))
+        sns.lineplot(
+            data=melted_weekly,
+            x='build_start_date',
+            y='Count',
+            hue='Source',
+            ax=ax,
+            marker='o'
+        )
+
+        # Prettify the plot
+        chart_title = col.replace("qty_of_defect_", "").replace("_", " ").title()
+        ax.set_title(f"Performance for: {chart_title}", fontsize=16)
+        ax.set_xlabel("Week")
+        ax.set_ylabel("Total Weekly Count")
+        ax.tick_params(axis='x', rotation=45)
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        st.pyplot(fig)
+        st.markdown("---")
