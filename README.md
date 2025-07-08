@@ -71,7 +71,7 @@ exports are written to `outputs/`.
    qualitylab train-build-quantity
    ```
 
-6. **Train all models at once**
+**OR you can train all models at once:**
 
    ```bash
    qualitylab train-all
@@ -81,12 +81,6 @@ After running these commands the `models/` directory will contain the latest
 training artefacts.
 
 ## Running the dashboard
-
-Launch the Streamlit dashboard to explore predictions and model performance:
-
-```bash
-streamlit run streamlit_app.py
-```
 
 The app loads the most recent models from `models/` and provides an interface to
 upload new spreadsheets, visualise predictions and export results.
