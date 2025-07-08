@@ -83,16 +83,45 @@ for i, col in enumerate(output_defect_cols):
         pred_df[col] = df[col]
     pred_df[f"pred_{col}"] = pred_def[:, i]
 
+# --- New Feature: sidebar part number filter ---
+part_options = sorted(pred_df["part_number"].unique())
+selected_parts = st.sidebar.multiselect(
+    "Filter by part number", part_options, default=part_options
+)
+filtered_df = pred_df[pred_df["part_number"].isin(selected_parts)]
+
 
 tab_pred, tab_perf = st.tabs(["Predictions", "Model Performance"])
 
 with tab_pred:
     st.subheader("Capacity Predictions")
+
+    # --- New Feature: summary metrics ---
+    tot_actual = int(filtered_df["qty_produced"].sum())
+    tot_pred   = int(filtered_df["pred_qty"].sum())
+    mean_time  = filtered_df["build_time_days"].mean()
+    mean_pred  = filtered_df["pred_build_time"].mean()
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total Qty (Actual)", f"{tot_actual}")
+    m2.metric("Total Qty (Pred)", f"{tot_pred}")
+    m3.metric("Avg Build Time", f"{mean_time:.1f} d")
+    m4.metric("Pred Build Time", f"{mean_pred:.1f} d")
+
     display_cols = [
         "part_number", "line", "qty_produced", "pred_qty",
         "build_time_days", "pred_build_time", "build_start_date"
     ]
-    st.dataframe(pred_df[display_cols])
+    st.dataframe(filtered_df[display_cols])
+
+    # --- New Feature: quantity trend chart ---
+    chart_data = (
+        filtered_df
+        .sort_values("build_start_date")
+        [["build_start_date", "qty_produced", "pred_qty"]]
+        .set_index("build_start_date")
+    )
+    st.line_chart(chart_data, use_container_width=True)
 
 with tab_perf:
     st.subheader("Defect Model Performance Over Time")
@@ -101,7 +130,7 @@ with tab_perf:
         actual_col = col
         pred_col = f"pred_{col}"
 
-        plot_data = pred_df[['build_start_date', actual_col, pred_col]].copy()
+        plot_data = filtered_df[['build_start_date', actual_col, pred_col]].copy()
         plot_data = plot_data.set_index('build_start_date')
         weekly_data = plot_data.resample('W').sum()
 
